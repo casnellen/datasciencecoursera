@@ -1,0 +1,144 @@
+---
+title: "Activity Recognition"
+author: "Chelsi Snellen"
+date: "December 15, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(corrplot)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+```
+
+## Overview
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+For the purpose of this exercise, the following steps will be followed:
+
+* Data Processing
+* Exploratory Data Analysis
+* Model Selection
+* Predicting on Test Set
+
+## Data Processing
+
+The first thing that needs to be done is to download the data and them spilt the training data into both training and validation sets
+
+```{r LoadingData}
+trainingURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+# Read the data into data frames
+training <- read.csv(url(trainingURL))
+test <- read.csv(url(testURL))
+
+# Now we need to split the training data into a training and validation set at a 70/30 split
+parition <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+trainData <- training[parition, ]
+validatData <- training[-parition, ]
+
+# Lets look at how much of the data is NA
+sum(is.na(trainData))
+```
+
+It looks like there are approximately 900,000 NA entries. Lets do something to reduce those numbers.
+
+```{r NARemoval}
+# Find the columns where the are more than 95 percent NA
+naEnteries <- apply(trainData, 2, function(x) mean(is.na(x))) > 0.95
+
+# Remove those columns 
+trainData <- trainData[, -which(naEnteries, naEnteries == FALSE)]
+validatData <- validatData[, -which(naEnteries, naEnteries == FALSE)]
+
+# Calculate the leftover amount of NAs
+sum(is.na(trainData))
+```
+
+Perfect! Now the NAs have been reduced down to 0. This also reduced the number of variables to use from 160 to 93. 
+
+Now some of the variables also have near zero variance within them. This means that they would be less useful in classifying the different types of activities.
+
+```{r nearZeroVarianceRemoval}
+# Find which variable have a near zero variance
+NZV <- nearZeroVar(trainData)
+
+# Remove those variables from the data sets
+trainData <- trainData[ ,-NZV]
+validatData <- validatData[ ,-NZV]
+```
+
+Now we know that each of the data sets contain variables that should have a chance of being a predictor for our outcome variable. Removing the varaibles with near zero variance has also reduced the number of predictors from 93 to 59. The last thing to do is remove the columns that contain identification information (The first five columns).
+
+```{r IdentifierColumnRemoval}
+# Remove the first five columns that only contain identification information
+trainData <- trainData[ , -(1:5)]
+validatData <- validatData[ , -(1:5)]
+```
+
+Through all the data processing, we have been able to drastically reduce the number of variable from 160 to 54. This will prove useful down the line when the model needs to predict the activity.
+
+## Exploratory Data Analysis
+
+Now that we have cleaned the dataof variables that didn't contain useful information, lets see if we can reduce our variables more by seeing if there are any variables that are heavily correlated with each other. 
+
+```{r}
+# Create the correlation matrix and then plot it
+corrMat <- cor(trainData[,-54])
+corrplot(corrMat, method = "color", type = "lower", tl.cex = 0.8, tl.col = rgb(0,0,0))
+```
+
+For this style of plot, the darker the color (either red or blue for negative and postive correlation respectively) the more highly correlated the variables are. It seems that alot of the data cleaning we did reduced alot of the highly correlated variables. So this set of variables should be go to use for prediction.
+
+## Model Selection
+
+For this problem set up, we are going to try three different models: Random Forests, Decision Trees and Generalized Boosted Model. We will choose the final model that performs the best on the validation set.
+
+### Random Forest 
+
+```{r RandomForest}
+library(caret)
+set.seed(13908)
+control <- trainControl(method = "cv", number = 3, verboseIter=FALSE)
+RFModel <- train(classe ~ ., data = trainData, method = "rf", trControl = control)
+RFModel$finalModel
+predictRF <- predict(RFModel, validatData)
+confMatRF <- confusionMatrix(predictRF, validatData$classe)
+confMatRF
+```
+
+### Decision Tree
+
+```{r DecisionTree, message = FALSE, warning = FALSE, fig.width=18, fig.height=10}
+set.seed(13908)
+modelDT <- rpart(classe ~ ., data = trainData, method = "class")
+fancyRpartPlot(modelDT)
+predictDT <- predict(modelDT, validatData, type = "class")
+confMatDT <- confusionMatrix(predictDT, validatData$classe)
+confMatDT
+```
+
+### Generalized Boosted Model
+
+```{r GBM, message = FALSE}
+set.seed(13908)
+control <- trainControl(method = "repeatedcv", number = 5, repeats = 1, verboseIter = FALSE)
+modelGBM <- train(classe ~ ., data = trainData, trControl = control, method = "gbm", verbose = FALSE)
+modelGBM$finalModel
+predictGBM <- predict(modelGBM, validatData)
+confMatGBM <- confusionMatrix(predictGBM, validatData$classe)
+confMatGBM
+```
+
+The Random Forest model ended up with the highest accuracy so we will go with that one for the final test set prediction
+
+## Test Set Prediction
+```{r}
+predictRF <- predict(RFModel, test)
+predictRF
+```
