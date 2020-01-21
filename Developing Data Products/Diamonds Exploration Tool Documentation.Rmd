@@ -1,0 +1,37 @@
+---
+title: "Diamond Exploration Tool Documentation"
+author: "Chelsi Snellen"
+date: "January 20, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+This tool is designed to make the data exploration process for the diamonds dataset easier for people who know little to no coding. 
+
+With this tool, you can choose three aspects of the plot:
+- X (the variable for the x axis)
+- Y (the variable for the y axis)
+- Color (the variable that determines the color of the points)
+
+## Procedure
+
+1. Chose which variable to put in for X
+2. Chose which variable to put in for y 
+3. Chose which variable to put in for the color
+
+The plot should automatically create itself after you chose each variable
+
+## Example 
+This an example plot that can be created by selecting
+X = carat Y = Price and Color = color
+```{r, echo=FALSE}
+library(ggplot2)
+data("diamonds")
+p <- ggplot(data = diamonds, aes(x = carat, y = price, color= color)) + geom_point()
+p <- p + xlab(as.character("Carat")) + ylab(as.character("Price"))
+p
+```

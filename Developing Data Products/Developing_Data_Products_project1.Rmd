@@ -1,0 +1,20 @@
+---
+title: "Developing Data Products Project 1"
+author: "Chelsi Snellen"
+date: "December 11, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(leaflet)
+```
+
+## Leaflet Map Demonstration
+```{r}
+df <- data.frame(lat = runif(25, min = 53.3, max = 53.4), lng = runif(25, min = -2.2, max = -2.1))
+df %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers()
+```

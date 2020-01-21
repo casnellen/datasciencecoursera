@@ -1,0 +1,29 @@
+---
+title: "Project 2: Plotly Slides"
+author: "Chelsi Snellen"
+date: "January 5, 2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Understanding Gas Mileage
+
+One of the many things that influence a car choice is whether or not it is fuel efficient. Using the `mtcars`, we ar going to investigate what factors affect a cars fuel efficiency.
+
+We are going to plot weight (`wt`) vs. mileage (`mpg`) as the x and y axis. We 
+visualize the number of cylinders (`cyl`) as colors and the amount of
+horsepower (`hp`) as the size of an individual point in the plot.
+
+## Visualizing the Data
+
+```{r plot, echo=FALSE, warning=FALSE}
+suppressPackageStartupMessages(library(plotly))
+plot_ly(data = mtcars, x = ~wt, y = ~mpg, 
+        color = ~as.factor(cyl), size = ~hp,
+        type = "scatter", mode = "markers") %>%
+  layout(title = "Car Data")
+```
+
